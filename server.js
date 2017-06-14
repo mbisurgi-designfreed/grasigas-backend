@@ -215,7 +215,7 @@ app.put('/api/movimientos/:choferId', (req, res) => {
     var fecha = req.body.fecha;
     var updatedMovimiento = req.body;
 
-    db.collection('movimientos').updateOne({fecha: fecha, choferId: id}, {$set: updatedMovimiento}, (err, doc) => {
+    db.collection('movimientos').updateOne({fecha: fecha, choferId: id}, {$set: updatedMovimiento}, {upsert: true}, (err, doc) => {
         if (err) {
             res.statusCode = 500;
 
