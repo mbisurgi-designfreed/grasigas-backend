@@ -1,6 +1,8 @@
 var express = require('express');
 var mongodb = require('mongodb');
 var parser = require('body-parser');
+var passport = require('passport');
+var BasicStrategy = require('passport-http').BasicStrategy;
 
 var app = express();
 var ObjectID = mongodb.ObjectID;
@@ -29,6 +31,24 @@ mongodb.MongoClient.connect('mongodb://localhost:27017/grasi-gas', (err, databas
 
 app.use(parser.urlencoded({extended: true}));
 app.use(parser.json())
+
+passport.use(new BasicStrategy(
+  function(username, password, callback) {  
+    db.collection('choferes').findOne({dni: username}, (err, user) => {
+      if (err) { return callback(err); }
+
+      // No user found with that username
+      if (!user) { return callback(null, false); }
+
+      // Make sure the password is correct
+      if (user.password != password) { return callback(null, false); }
+
+      if (user.password === password) { return callback(null, user); };
+    });
+  }
+));
+
+var isAuthenticated = passport.authenticate('basic', { session : false });
 
 app.get('/api/choferes', (req, res) => {
     db.collection('choferes').find({}).toArray((err, docs) => {
@@ -139,7 +159,7 @@ app.delete('/api/choferes/:dni', (req, res) => {
     });
 });
 
-app.get('/api/movimientos', (req, res) => {
+app.get('/api/movimientos', isAuthenticated, (req, res) => {
     var desde = req.query.desde
     var hasta = req.query.hasta;
 
@@ -162,7 +182,7 @@ app.get('/api/movimientos', (req, res) => {
     });
 });
 
-app.post('/api/movimientos', (req, res) => {
+app.post('/api/movimientos', isAuthenticated, (req, res) => {
     req.body.choferId = new ObjectID(req.body.choferId);
     
     var newMovimiento = req.body;
@@ -186,7 +206,7 @@ app.post('/api/movimientos', (req, res) => {
     });
 });
 
-app.get('/api/movimientos/:choferId', (req, res) => {
+app.get('/api/movimientos/:choferId', isAuthenticated, (req, res) => {
     var id = new ObjectID(req.params.choferId);
     var desde = req.query.desde;
     var hasta = req.query.hasta;
@@ -210,7 +230,7 @@ app.get('/api/movimientos/:choferId', (req, res) => {
     });
 });
 
-app.put('/api/movimientos/:choferId', (req, res) => {
+app.put('/api/movimientos/:choferId', isAuthenticated, (req, res) => {
     var id = new ObjectID(req.params.choferId);
     var fecha = req.body.fecha;
     var updatedMovimiento = req.body;
